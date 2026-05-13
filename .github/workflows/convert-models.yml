@@ -26,7 +26,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install numpy
+        run: pip install -r tools/requirements.txt
 
       - name: Get current BAR repo SHA (units dir)
         id: get_sha
@@ -94,10 +94,22 @@ jobs:
 
       - name: Convert all units (via GitHub API)
         if: steps.changed.outputs.run_conversion == 'true' && (inputs.force_all == 'true' || steps.changed_units.outputs.convert_all == 'true')
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
         run: python tools/convert.py --prefix "" --local --force
 
       - name: Convert only changed units (via GitHub API)
         if: steps.changed.outputs.run_conversion == 'true' && inputs.force_all != 'true' && steps.changed_units.outputs.convert_all != 'true' && steps.changed_units.outputs.changed_units != ''
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
         run: |
           for UNIT in ${{ steps.changed_units.outputs.changed_units }}; do
             python tools/convert.py --unit "$UNIT" --local --force || echo "Waarschuwing: $UNIT mislukt, overgeslagen."

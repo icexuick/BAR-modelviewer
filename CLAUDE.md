@@ -18,8 +18,15 @@ De website draait op Webflow (beyondallreason.info). Modellen worden getoond met
 
 ## GLB bestandslocatie — BELANGRIJK
 - **Alle GLBs staan in `glb/`** — dit is de enige juiste plek.
-- De viewer laadt van: `https://raw.githubusercontent.com/icexuick/BAR-modelviewer/main/glb/{unitname}.glb`
+- Repo is de source of truth; viewer laadt van Cloudflare R2: `https://pub-6bd55f3ce081404a8ed10246598d1b21.r2.dev/glb/{unitname}.glb`
 - **Zoek NOOIT naar GLBs in de repo root of ergens anders dan `glb/`.**
+
+## Cloudflare R2 sync
+- Bucket: `bar-unit-assets` (één bucket, subfolders `glb/`, `tex/`, `hdr/`)
+- Credentials in `tools/.env` (gitignored)
+- `tools/convert.py` uploadt nieuwe GLBs automatisch naar R2 — uitschakelen met `--no-r2`
+- Bulk sync: `python tools/sync_to_r2.py --all` (idempotent, skipt unchanged via ETag)
+- CORS policy: `tools/r2_cors.json`, applied via `python tools/set_r2_cors.py`
 
 ## Convert commando's — altijd naar `glb/`
 ```bash
@@ -68,4 +75,4 @@ Belangrijke Three.js details:
 - Three.js v0.160.0 via unpkg importmap
 - GLTFLoader + OrbitControls + SSAO + SMAA postprocessing
 - Textures: `{faction}_color.png`, `{faction}_other.png`, `{faction}_normal.png`, `{faction}_team.png`
-- Models laden van: `https://raw.githubusercontent.com/icexuick/BAR-modelviewer/main/glb/{unitname}.glb`
+- Models laden van: `https://pub-6bd55f3ce081404a8ed10246598d1b21.r2.dev/glb/{unitname}.glb`

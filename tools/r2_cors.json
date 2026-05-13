@@ -1,0 +1,15 @@
+[
+  {
+    "AllowedOrigins": [
+      "https://beyondallreason.info",
+      "https://www.beyondallreason.info",
+      "https://*.webflow.io",
+      "http://localhost:*",
+      "http://127.0.0.1:*"
+    ],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag", "Content-Length", "Content-Type", "Accept-Ranges"],
+    "MaxAgeSeconds": 3600
+  }
+]

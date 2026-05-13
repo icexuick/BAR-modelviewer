@@ -106,7 +106,8 @@
         let normalMapScaleY = 2.2, roughnessValue = 0.45;
         let pbrEmissiveIntensityValue = 14.0, pulseMaxValue = 1.4;
 
-        const hdrBasePath = 'https://raw.githubusercontent.com/icexuick/BAR-modelviewer/main/hdr/';
+        const cdnBase = 'https://pub-6bd55f3ce081404a8ed10246598d1b21.r2.dev/';
+        const hdrBasePath = cdnBase + 'hdr/';
         let armHdrUrl = hdrBasePath + 'clarens_midday_2k5.hdr';
         let corHdrUrl = hdrBasePath + 'clarens_midday_2k5.hdr';
         let legHdrUrl = hdrBasePath + 'clarens_midday_2k5.hdr';
@@ -126,8 +127,8 @@
         VIEWER_CONFIG.teamColor = '#' + teamColor.getHexString();
         VIEWER_CONFIG.hdrUrl = selectedHdrUrl;
 
-        const modelURL = `https://raw.githubusercontent.com/icexuick/BAR-modelviewer/main/${unitName}.glb?v=${Date.now()}`;
-        const baseURL = 'https://raw.githubusercontent.com/icexuick/BAR-modelviewer/main/tex/';
+        const modelURL = `${cdnBase}glb/${unitName}.glb?v=${Date.now()}`;
+        const baseURL = `${cdnBase}tex/`;
         const diffuseURL = `${baseURL}${texturePrefix}_color.png`;
         const pbrURL = `${baseURL}${texturePrefix}_other.png`;
         const normalURL = `${baseURL}${texturePrefix}_normal.png`;

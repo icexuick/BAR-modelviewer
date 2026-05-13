@@ -2503,6 +2503,23 @@ def push_glb_to_repo(glb_path: str, force: bool = False):
     print(f"  {action} in repo: https://github.com/{VIEWER_REPO}/blob/main/{repo_path}")
 
 
+def _push_glbs_to_r2(glb_paths):
+    """Upload converted GLBs to Cloudflare R2. Silently skips when not configured."""
+    glb_paths = [p for p in glb_paths if p and os.path.isfile(p)]
+    if not glb_paths:
+        return
+    try:
+        from r2_upload import R2Client
+        client = R2Client()
+    except Exception as e:
+        print(f"  R2 upload skipped: {e}")
+        return
+    items = [(p, f"glb/{os.path.basename(p)}") for p in glb_paths]
+    print(f"\n  Uploading {len(items)} GLB(s) to R2...")
+    stats = client.upload_many(items, verbose=True)
+    print(f"  R2: uploaded {stats['uploaded']}, skipped {stats['skipped']}, failed {stats['failed']}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="BAR S3O → GLB Converter with Weapon Metadata"
@@ -2523,6 +2540,8 @@ def main():
     parser.add_argument('--force', action='store_true',
                         help='Force push to GitHub even if file is unchanged')
     parser.add_argument('--prefix', help='Convert all units whose name starts with this prefix (e.g. "leg")')
+    parser.add_argument('--no-r2', action='store_true',
+                        help='Skip auto-upload of converted GLBs to Cloudflare R2')
 
     args = parser.parse_args()
 
@@ -2533,6 +2552,7 @@ def main():
             return
         print(f"Found {len(unit_names)} units with prefix '{args.prefix}': {unit_names}")
         ok, skipped, failed = 0, 0, []
+        converted_paths = []
         repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         glb_dir = os.path.join(repo_root, "glb")
         os.makedirs(glb_dir, exist_ok=True)
@@ -2547,6 +2567,7 @@ def main():
                 )
                 if result:
                     ok += 1
+                    converted_paths.append(result)
                 else:
                     skipped += 1
             except Exception as e:
@@ -2555,6 +2576,8 @@ def main():
         print(f"\n=== Batch complete: {ok} converted, {skipped} skipped, {len(failed)} failed ===")
         if failed:
             print(f"Failed: {failed}")
+        if not args.no_r2:
+            _push_glbs_to_r2(converted_paths)
         return
 
     if args.unit:
@@ -2565,16 +2588,39 @@ def main():
                 glb_dir = os.path.join(repo_root, "glb")
                 os.makedirs(glb_dir, exist_ok=True)
                 args.output = os.path.join(glb_dir, f"{args.unit}.glb")
-        fetch_unit_from_github(
+        result = fetch_unit_from_github(
             args.unit, args.output, args.info_only,
             push=not args.local and not args.info_only,
             force=args.force,
         )
+        if result and not args.no_r2 and not args.info_only:
+            _push_glbs_to_r2([result])
     elif args.bar_dir:
+        # Snapshot existing GLBs so we can detect newly-written ones for R2 push
+        out_dir = args.output_dir
+        before = {}
+        if os.path.isdir(out_dir):
+            for f in os.listdir(out_dir):
+                p = os.path.join(out_dir, f)
+                if f.endswith('.glb') and os.path.isfile(p):
+                    before[f] = os.path.getmtime(p)
         batch_convert(args.bar_dir, args.output_dir, args.filter,
                       folder_filter=getattr(args, 'folder', None))
+        if not args.no_r2 and os.path.isdir(out_dir):
+            changed = []
+            for f in os.listdir(out_dir):
+                if not f.endswith('.glb'):
+                    continue
+                p = os.path.join(out_dir, f)
+                if not os.path.isfile(p):
+                    continue
+                if f not in before or os.path.getmtime(p) > before[f]:
+                    changed.append(p)
+            _push_glbs_to_r2(changed)
     elif args.s3o:
-        convert_single(args.s3o, args.script, args.output, args.info_only)
+        result = convert_single(args.s3o, args.script, args.output, args.info_only)
+        if result and not args.no_r2 and not args.info_only:
+            _push_glbs_to_r2([result])
     else:
         parser.print_help()
 
